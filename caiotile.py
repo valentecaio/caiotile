@@ -2,11 +2,11 @@
 
 import argparse
 import subprocess
+import re
 
 
 class Display:
-    def __init__(self, display_id, pos_x, pos_y, width, height):
-        self.display_id = int(display_id)
+    def __init__(self, pos_x, pos_y, width, height):
         self.pos_x = int(pos_x)
         self.pos_y = int(pos_y)
         self.width = int(width)
@@ -17,28 +17,43 @@ class Display:
                + str(self.width) + ',' + str(self.height)
 
     def __repr__(self):
-        return "display_id: " + str(self.display_id) + \
-               ", position: (" + str(self.pos_x) + \
+        return "position: (" + str(self.pos_x) + \
                "," + str(self.pos_y) + ')'\
                ", width: " + str(self.width) + \
                ", height: " + str(self.height)
 
 
-def read_monitors(filename):
-    f = open(filename, "r")
-    monitors = []
-    for line in f:
-        l = line.split(',')
-        monitors.append(Display(l[0], l[1], l[2], l[3], l[4]))
-    return monitors
+# example ['1366x768+1024+373', '1024x768+0+0']
+def get_displays():
+    out = str(execute('xrandr'))
+
+    # remove occurrences of 'primary' substring
+    out = out.replace("primary ", "")
+
+    start_flag = " connected "
+    end_flag = " ("
+    resolutions = []
+    for m in re.finditer(start_flag, out):
+        # start substring in the end of the start_flag
+        start = m.end()
+        # end substring before the end_flag
+        end = start + out[start:].find(end_flag)
+
+        resolutions.append(out[start:end])
+
+    displays = []
+    for r in resolutions:
+        width = r.split('x')[0]
+        height, x, y = r.split('x')[1].split('+')
+        displays.append(Display(x, y, width, height))
+
+    return displays
 
 
 def parse_arguments():
     parser = argparse.ArgumentParser(description='Tile tool')
     parser.add_argument('-s', '--side', dest='side',
                         choices=['left', 'right'], help='tile to side')
-    parser.add_argument('-d', '--display', dest='display',
-                        type=int, help='move window to specified display')
     parser.add_argument('-c', '--change-display', dest='change_display',
                         action='store_true',
                         help='move window to next display')
@@ -79,16 +94,18 @@ def find_inactive_display(displays):
             return d
 
 
-def main():
+def set_window_size_and_position(x, y, width, height):
     cmd_header = 'wmctrl -r ":ACTIVE:" -e 0,'
-    parse_arguments()
-    args = parse_arguments()
+    height_offset = 50
 
-    if args.filepath:
-        filepath = args.filepath
-    else:
-        filepath = "displays.csv"
-    displays = read_monitors(filepath)
+    cmd = cmd_header + str(x) + ',' + str(y) + ',' + str(width) + ',' +\
+          str(height - height_offset)
+    execute(cmd)
+
+
+def main():
+    args = parse_arguments()
+    displays = get_displays()
 
     if args.side:
         d = find_active_display(displays)
@@ -98,26 +115,16 @@ def main():
             new_x = d.pos_x
         elif args.side == 'right':
             new_x = d.pos_x + new_width
-        cmd = cmd_header + str(new_x) + ',' + str(d.pos_y) +\
-              ',' + str(new_width) + ',' + str(d.height)
-        execute(cmd)
 
-    elif args.display is not None:
-        d = displays[args.display]
-        cmd = cmd_header + str(d)
-        execute(cmd)
+        set_window_size_and_position(new_x, d.pos_y, new_width, d.height)
 
     elif args.change_display:
         d = find_inactive_display(displays)
-        cmd = cmd_header + str(d)
-        execute(cmd)
+        set_window_size_and_position(d.pos_x, d.pos_y, d.width, d.height)
 
     elif args.maximize:
         d = find_active_display(displays)
-        cmd = cmd_header + str(d)
-        execute(cmd)
-
-    print(args)
+        set_window_size_and_position(d.pos_x, d.pos_y, d.width, d.height)
 
 
 if __name__ == "__main__":
