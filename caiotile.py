@@ -52,13 +52,13 @@ def get_displays():
 
 def parse_arguments():
     parser = argparse.ArgumentParser(description='Tile tool')
-    parser.add_argument('-s', '--side', dest='side',
+    parser.add_argument('-t', '--tile', dest='tile',
                         choices=['left', 'right'], help='tile to side')
-    parser.add_argument('-c', '--change-display', dest='change_display',
+    parser.add_argument('-s', '--switch-display', dest='switch_display',
                         action='store_true',
                         help='move window to next display')
-    parser.add_argument('-f', '--filepath', dest='filepath',
-                        help='displays CSV file path')
+    parser.add_argument('-c', '--change-to-display', dest='change_to_display',
+                        type=int, help='move window to specified display')
     parser.add_argument('-m', '--maximize', dest='maximize',
                         action='store_true', help='maximize window')
     return parser.parse_args()
@@ -107,18 +107,22 @@ def main():
     args = parse_arguments()
     displays = get_displays()
 
-    if args.side:
+    if args.tile:
         d = find_active_display(displays)
 
         new_width = int(d.width/2)
-        if args.side == 'left':
+        if args.tile == 'left':
             new_x = d.pos_x
-        elif args.side == 'right':
+        elif args.tile == 'right':
             new_x = d.pos_x + new_width
 
         set_window_size_and_position(new_x, d.pos_y, new_width, d.height)
 
-    elif args.change_display:
+    elif args.change_to_display is not None:
+        d = displays[args.change_to_display]
+        set_window_size_and_position(d.pos_x, d.pos_y, d.width, d.height)
+
+    elif args.switch_display:
         d = find_inactive_display(displays)
         set_window_size_and_position(d.pos_x, d.pos_y, d.width, d.height)
 
