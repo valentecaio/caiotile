@@ -5,6 +5,8 @@ import subprocess
 import re
 
 
+HEIGHT_OFFSET = 60
+
 class Display:
     def __init__(self, pos_x, pos_y, width, height):
         self.pos_x = int(pos_x)
@@ -53,11 +55,13 @@ def get_displays():
 def parse_arguments():
     parser = argparse.ArgumentParser(description='Tile tool')
     parser.add_argument('-t', '--tile', dest='tile',
-                        choices=['left', 'right'], help='tile to side')
+                        choices=['left', 'right'], help='horizontal tile')
+    parser.add_argument('-v', '--vertical-tile', dest='v_tile',
+                        choices=['top', 'bottom'], help='vertical tile')
     parser.add_argument('-s', '--switch-display', dest='switch_display',
                         action='store_true',
                         help='move window to next display')
-    parser.add_argument('-c', '--change-to-display', dest='change_to_display',
+    parser.add_argument('-c', '--change-to-display', dest='display',
                         type=int, help='move window to specified display')
     parser.add_argument('-m', '--maximize', dest='maximize',
                         action='store_true', help='maximize window')
@@ -96,10 +100,9 @@ def find_inactive_display(displays):
 
 def set_window_size_and_position(x, y, width, height):
     cmd_header = 'wmctrl -r ":ACTIVE:" -e 0,'
-    height_offset = 50
 
     cmd = cmd_header + str(x) + ',' + str(y) + ',' + str(width) + ',' +\
-          str(height - height_offset)
+          str(height - HEIGHT_OFFSET)
     execute(cmd)
 
 
@@ -118,15 +121,26 @@ def main():
 
         set_window_size_and_position(new_x, d.pos_y, new_width, d.height)
 
-    elif args.change_to_display is not None:
-        d = displays[args.change_to_display]
+    if args.v_tile:
+        d = find_active_display(displays)
+
+        new_height = int(d.height/2)
+        if args.v_tile == 'top':
+            new_y = d.pos_y
+        elif args.v_tile == 'bottom':
+            new_y = d.pos_y + new_height
+
+        set_window_size_and_position(d.pos_x, new_y, d.width, new_height)
+
+    if args.display is not None:
+        d = displays[args.display]
         set_window_size_and_position(d.pos_x, d.pos_y, d.width, d.height)
 
-    elif args.switch_display:
+    if args.switch_display:
         d = find_inactive_display(displays)
         set_window_size_and_position(d.pos_x, d.pos_y, d.width, d.height)
 
-    elif args.maximize:
+    if args.maximize:
         d = find_active_display(displays)
         set_window_size_and_position(d.pos_x, d.pos_y, d.width, d.height)
 
