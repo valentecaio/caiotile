@@ -9,10 +9,10 @@ HEIGHT_OFFSET = 60
 
 class Rectangle:
     def __init__(self, x, y, w, h):
-        self.x = int(x)
-        self.y = int(y)
-        self.w = int(w)
-        self.h = int(h)
+        self.x = int(x) # origin x
+        self.y = int(y) # origin y
+        self.w = int(w) # width
+        self.h = int(h) # height
 
     def __str__(self):
         return str(self.x) + ',' + str(self.y) + ',' \
@@ -47,7 +47,7 @@ def get_displays():
     for r in resolutions:
         width = r.split('x')[0]
         height, x, y = r.split('x')[1].split('+')
-        displays.append(Rectangle(x, y, width, height))
+        displays.append(Rectangle(x, y, width, int(height)-HEIGHT_OFFSET))
 
     return displays
 
@@ -55,9 +55,8 @@ def get_displays():
 def parse_arguments():
     parser = argparse.ArgumentParser(description='Tile tool')
     parser.add_argument('-t', '--tile', dest='tile',
-                        choices=['left', 'right'], help='horizontal tile')
-    parser.add_argument('-v', '--vertical-tile', dest='v_tile',
-                        choices=['top', 'bottom'], help='vertical tile')
+                        choices=['left', 'right', 'top', 'bottom'],
+                        help='tile relatively to display')
     parser.add_argument('-s', '--switch-display', dest='switch_display',
                         action='store_true',
                         help='move window to next display')
@@ -116,11 +115,10 @@ def get_inactive_display(displays):
     return get_display(displays, False)
 
 
-def set_window_size_and_position(x, y, width, height):
+def set_window(x, y, w, h):
     cmd_header = 'wmctrl -r ":ACTIVE:" -e 0,'
 
-    cmd = cmd_header + str(x) + ',' + str(y) + ',' + str(width) + ',' +\
-          str(height - HEIGHT_OFFSET)
+    cmd = cmd_header + str(x) + ',' + str(y) + ',' + str(w) + ',' + str(h)
     execute(cmd)
 
 
@@ -129,38 +127,39 @@ def main():
     displays = get_displays()
 
     if args.tile:
-        d = get_active_display(displays)
+        display = get_active_display(displays)
+        window = get_active_window()
 
-        new_width = int(d.w/2)
+        x = display.x
+        y = display.y
+        w = display.w
+        h = display.h
         if args.tile == 'left':
-            new_x = d.x
+            w = int(display.w/2)
+            x = display.x
         elif args.tile == 'right':
-            new_x = d.x + new_width
+            w = int(display.w/2)
+            x = display.x + w
+        elif args.tile == 'top':
+            h = int(display.h/2)
+            y = display.y
+        elif args.tile == 'bottom':
+            h = int(display.h/2)
+            y = display.y + h
 
-        set_window_size_and_position(new_x, d.y, new_width, d.h)
-
-    if args.v_tile:
-        d = get_active_display(displays)
-
-        new_height = int(d.h/2)
-        if args.v_tile == 'top':
-            new_y = d.y
-        elif args.v_tile == 'bottom':
-            new_y = d.y + new_height
-
-        set_window_size_and_position(d.x, new_y, d.w, new_height)
+        set_window(x, y, w, h)
 
     if args.display is not None:
         d = displays[args.display]
-        set_window_size_and_position(d.x, d.y, d.w, d.h)
+        set_window(d.x, d.y, d.w, d.h)
 
     if args.switch_display:
         d = get_inactive_display(displays)
-        set_window_size_and_position(d.x, d.y, d.w, d.h)
+        set_window(d.x, d.y, d.w, d.h)
 
     if args.maximize:
         d = get_active_display(displays)
-        set_window_size_and_position(d.x, d.y, d.w, d.h)
+        set_window(d.x, d.y, d.w, d.h)
 
 
 if __name__ == "__main__":
