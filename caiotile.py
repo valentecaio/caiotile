@@ -73,7 +73,7 @@ def execute(cmd):
     return subprocess.check_output(['bash', '-c', cmd])
 
 
-def get_active_window_position():
+def get_active_window():
     cmd = 'xdotool getactivewindow getwindowgeometry'
     flag_pos_start = "Position: "
     flag_pos_end = " (screen:"
@@ -82,29 +82,38 @@ def get_active_window_position():
 
     r = str(execute(cmd))
     
-    str_pos = r[r.find(flag_pos_start) + len(flag_pos_start) : r.find(flag_pos_end)]
-    str_geom = r[r.find(flag_geom_start) + len(flag_geom_start): r.rfind(flag_geom_end)]
+    str_pos = r[r.find(flag_pos_start) + len(flag_pos_start) \
+              : r.find(flag_pos_end)]
+    str_geom = r[r.find(flag_geom_start) + len(flag_geom_start) \
+               : r.rfind(flag_geom_end)]
 
-    #pos = str_pos.split[',']
-    #geom = str_geom.split['x']
+    pos = str_pos.split(',')
+    geom = str_geom.split('x')
 
-    return r[r.find(flag_pos_start) + len(flag_pos_start): r.find(flag_pos_end)].split(',')
+    return Rectangle(pos[0], pos[1], geom[0], geom[1])
 
 
-def find_active_display(displays):
-    x, y = get_active_window_position()
+def window_is_in_display(w, d):
+   return (d.x <= w.x <= d.x+d.w) and (d.y <= w.y <= d.y+d.h)
+
+
+def get_display(displays, active):
+    w = get_active_window()
     for d in displays:
-        if (d.x <= int(x) <= d.x+d.w) and\
-                (d.y <= int(y) <= d.y+d.h):
-            return d
+        if window_is_in_display(w, d):
+            if active:
+                return d
+        else:
+            if not active:
+                return d
 
 
-def find_inactive_display(displays):
-    x, y = get_active_window_position()
-    for d in displays:
-        if not ((d.x <= int(x) <= d.x+d.w) and\
-                (d.y <= int(y) <= d.y+d.h)):
-            return d
+def get_active_display(displays):
+    return get_display(displays, True)
+
+
+def get_inactive_display(displays):
+    return get_display(displays, False)
 
 
 def set_window_size_and_position(x, y, width, height):
@@ -120,7 +129,7 @@ def main():
     displays = get_displays()
 
     if args.tile:
-        d = find_active_display(displays)
+        d = get_active_display(displays)
 
         new_width = int(d.w/2)
         if args.tile == 'left':
@@ -131,7 +140,7 @@ def main():
         set_window_size_and_position(new_x, d.y, new_width, d.h)
 
     if args.v_tile:
-        d = find_active_display(displays)
+        d = get_active_display(displays)
 
         new_height = int(d.h/2)
         if args.v_tile == 'top':
@@ -146,11 +155,11 @@ def main():
         set_window_size_and_position(d.x, d.y, d.w, d.h)
 
     if args.switch_display:
-        d = find_inactive_display(displays)
+        d = get_inactive_display(displays)
         set_window_size_and_position(d.x, d.y, d.w, d.h)
 
     if args.maximize:
-        d = find_active_display(displays)
+        d = get_active_display(displays)
         set_window_size_and_position(d.x, d.y, d.w, d.h)
 
 
