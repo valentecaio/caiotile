@@ -7,22 +7,22 @@ import re
 
 HEIGHT_OFFSET = 60
 
-class Display:
-    def __init__(self, pos_x, pos_y, width, height):
-        self.pos_x = int(pos_x)
-        self.pos_y = int(pos_y)
-        self.width = int(width)
-        self.height = int(height)
+class Rectangle:
+    def __init__(self, x, y, w, h):
+        self.x = int(x)
+        self.y = int(y)
+        self.w = int(w)
+        self.h = int(h)
 
     def __str__(self):
-        return str(self.pos_x) + ',' + str(self.pos_y) + ',' \
-               + str(self.width) + ',' + str(self.height)
+        return str(self.x) + ',' + str(self.y) + ',' \
+               + str(self.w) + ',' + str(self.h)
 
     def __repr__(self):
-        return "position: (" + str(self.pos_x) + \
-               "," + str(self.pos_y) + ')'\
-               ", width: " + str(self.width) + \
-               ", height: " + str(self.height)
+        return "position: (" + str(self.x) + \
+               "," + str(self.y) + ')'\
+               ", size: " + str(self.w) + \
+               "," + str(self.h) + ')'
 
 
 # example ['1366x768+1024+373', '1024x768+0+0']
@@ -47,7 +47,7 @@ def get_displays():
     for r in resolutions:
         width = r.split('x')[0]
         height, x, y = r.split('x')[1].split('+')
-        displays.append(Display(x, y, width, height))
+        displays.append(Rectangle(x, y, width, height))
 
     return displays
 
@@ -75,26 +75,35 @@ def execute(cmd):
 
 def get_active_window_position():
     cmd = 'xdotool getactivewindow getwindowgeometry'
-    s1 = "Position: "
-    s2 = " (screen:"
+    flag_pos_start = "Position: "
+    flag_pos_end = " (screen:"
+    flag_geom_start = "Geometry: "
+    flag_geom_end = "\\n"
 
     r = str(execute(cmd))
-    return r[r.find(s1) + len(s1): r.find(s2)].split(',')
+    
+    str_pos = r[r.find(flag_pos_start) + len(flag_pos_start) : r.find(flag_pos_end)]
+    str_geom = r[r.find(flag_geom_start) + len(flag_geom_start): r.rfind(flag_geom_end)]
+
+    #pos = str_pos.split[',']
+    #geom = str_geom.split['x']
+
+    return r[r.find(flag_pos_start) + len(flag_pos_start): r.find(flag_pos_end)].split(',')
 
 
 def find_active_display(displays):
     x, y = get_active_window_position()
     for d in displays:
-        if (d.pos_x <= int(x) <= d.pos_x+d.width) and\
-                (d.pos_y <= int(y) <= d.pos_y+d.height):
+        if (d.x <= int(x) <= d.x+d.w) and\
+                (d.y <= int(y) <= d.y+d.h):
             return d
 
 
 def find_inactive_display(displays):
     x, y = get_active_window_position()
     for d in displays:
-        if not ((d.pos_x <= int(x) <= d.pos_x+d.width) and\
-                (d.pos_y <= int(y) <= d.pos_y+d.height)):
+        if not ((d.x <= int(x) <= d.x+d.w) and\
+                (d.y <= int(y) <= d.y+d.h)):
             return d
 
 
@@ -113,36 +122,36 @@ def main():
     if args.tile:
         d = find_active_display(displays)
 
-        new_width = int(d.width/2)
+        new_width = int(d.w/2)
         if args.tile == 'left':
-            new_x = d.pos_x
+            new_x = d.x
         elif args.tile == 'right':
-            new_x = d.pos_x + new_width
+            new_x = d.x + new_width
 
-        set_window_size_and_position(new_x, d.pos_y, new_width, d.height)
+        set_window_size_and_position(new_x, d.y, new_width, d.h)
 
     if args.v_tile:
         d = find_active_display(displays)
 
-        new_height = int(d.height/2)
+        new_height = int(d.h/2)
         if args.v_tile == 'top':
-            new_y = d.pos_y
+            new_y = d.y
         elif args.v_tile == 'bottom':
-            new_y = d.pos_y + new_height
+            new_y = d.y + new_height
 
-        set_window_size_and_position(d.pos_x, new_y, d.width, new_height)
+        set_window_size_and_position(d.x, new_y, d.w, new_height)
 
     if args.display is not None:
         d = displays[args.display]
-        set_window_size_and_position(d.pos_x, d.pos_y, d.width, d.height)
+        set_window_size_and_position(d.x, d.y, d.w, d.h)
 
     if args.switch_display:
         d = find_inactive_display(displays)
-        set_window_size_and_position(d.pos_x, d.pos_y, d.width, d.height)
+        set_window_size_and_position(d.x, d.y, d.w, d.h)
 
     if args.maximize:
         d = find_active_display(displays)
-        set_window_size_and_position(d.pos_x, d.pos_y, d.width, d.height)
+        set_window_size_and_position(d.x, d.y, d.w, d.h)
 
 
 if __name__ == "__main__":
