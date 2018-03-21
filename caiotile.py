@@ -57,6 +57,9 @@ def parse_arguments():
     parser.add_argument('-t', '--tile', dest='tile',
                         choices=['left', 'right', 'top', 'bottom'],
                         help='tile relatively to display')
+    parser.add_argument('-w', '--tile-window', dest='tile_w',
+                        choices=['left', 'right', 'top', 'bottom'],
+                        help='tile relatively to window itself')
     parser.add_argument('-s', '--switch-display', dest='switch_display',
                         action='store_true',
                         help='move window to next display')
@@ -122,32 +125,40 @@ def set_window(x, y, w, h):
     execute(cmd)
 
 
+def tile(direction, basis, display):
+    x = basis.x
+    y = basis.y
+    w = basis.w
+    h = basis.h
+
+    if direction == 'left':
+        w = int(display.w/2)
+        x = display.x
+    elif direction == 'right':
+        w = int(display.w/2)
+        x = display.x + w
+    elif direction == 'top':
+        h = int(display.h/2)
+        y = display.y
+    elif direction == 'bottom':
+        h = int(display.h/2)
+        y = display.y + h
+
+    set_window(x, y, w, h)
+
+
 def main():
     args = parse_arguments()
     displays = get_displays()
 
     if args.tile:
         display = get_active_display(displays)
+        tile(args.tile, display, display)
+
+    if args.tile_w:
+        display = get_active_display(displays)
         window = get_active_window()
-
-        x = display.x
-        y = display.y
-        w = display.w
-        h = display.h
-        if args.tile == 'left':
-            w = int(display.w/2)
-            x = display.x
-        elif args.tile == 'right':
-            w = int(display.w/2)
-            x = display.x + w
-        elif args.tile == 'top':
-            h = int(display.h/2)
-            y = display.y
-        elif args.tile == 'bottom':
-            h = int(display.h/2)
-            y = display.y + h
-
-        set_window(x, y, w, h)
+        tile(args.tile_w, window, display)
 
     if args.display is not None:
         d = displays[args.display]
