@@ -158,6 +158,8 @@ def main():
     if args.tile_w:
         display = get_active_display(displays)
         window = get_active_window()
+        # the get is 2 pixels more than the real value
+        window.x -= 2
         tile(args.tile_w, window, display)
 
     if args.display is not None:
