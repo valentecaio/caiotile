@@ -32,6 +32,9 @@ def get_displays():
     # remove occurrences of 'primary' substring
     out = out.replace("primary ", "")
 
+    # we won't match displays that are disabled (no resolution)
+    out = out.replace("connected (", "")
+
     start_flag = " connected "
     end_flag = " ("
     resolutions = []
