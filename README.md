@@ -10,18 +10,16 @@ taskbar may be at the bottom of the screen.
 
 ## DEPENDENCIES
 
-You will need wmctrl installed:
+You will need wmctrl and xdotool installed:
 
 ```
-$ sudo apt install wmctrl
+$ sudo apt install wmctrl xdotool
 ```
 
 And some python3 libraries:
 
 ```
-argparse
-subprocess
-re
+pip3 install argparse
 ```
 
 ## USAGE
